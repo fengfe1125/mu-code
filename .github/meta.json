@@ -1,0 +1,29 @@
+{
+  "name": "μ code",
+  "description": "A modern AI-powered coding assistant with beautiful UI / 一个现代化的 AI 编程助手",
+  "version": "1.0.0",
+  "author": "YOUR_USERNAME",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "coding-assistant",
+    "chatbot",
+    "openai",
+    "anthropic",
+    "claude",
+    "gpt",
+    "react",
+    "typescript",
+    "vite",
+    "programming",
+    "developer-tools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/mu-code"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/mu-code/issues"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/mu-code#readme"
+}

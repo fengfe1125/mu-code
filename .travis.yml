@@ -1,0 +1,5 @@
+node_js:
+- 20
+language: node_js
+script:
+- npm run build
