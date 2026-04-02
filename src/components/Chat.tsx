@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect } from 'react'
-import { Session, APIConfig, Message, ToolCall } from '../types'
+import { Session, APIConfig, Message } from '../types'
+import { Language } from '../i18n'
 import './Chat.css'
 
 interface Props {
   session: Session
   apiConfig?: APIConfig
   onUpdateMessages: (messages: Message[]) => void
+  t: (key: any) => string
+  language: Language
 }
 
-export default function Chat({ session, apiConfig, onUpdateMessages }: Props) {
+export default function Chat({ session, apiConfig, onUpdateMessages, t, language }: Props) {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -55,7 +58,7 @@ export default function Chat({ session, apiConfig, onUpdateMessages }: Props) {
 
     try {
       // Call API
-      const response = await callAPI(messages, apiConfig)
+      const response = await callAPI(messages, apiConfig, language)
       
       // Update with response
       const updatedMessages = messages.map(m => 
@@ -68,7 +71,7 @@ export default function Chat({ session, apiConfig, onUpdateMessages }: Props) {
       const errorMessage = error instanceof Error ? error.message : 'An error occurred'
       const updatedMessages = messages.map(m => 
         m.id === assistantMessage.id 
-          ? { ...m, content: `Error: ${errorMessage}`, status: 'error' as const }
+          ? { ...m, content: `${t('error')}: ${errorMessage}`, status: 'error' as const }
           : m
       )
       onUpdateMessages(updatedMessages)
@@ -89,7 +92,7 @@ export default function Chat({ session, apiConfig, onUpdateMessages }: Props) {
       <div className="chat-header">
         <div className="chat-title">{session.name}</div>
         <div className="chat-model">
-          {apiConfig?.model || 'No model selected'}
+          {apiConfig?.model || t('notSet')}
         </div>
       </div>
 
@@ -97,12 +100,12 @@ export default function Chat({ session, apiConfig, onUpdateMessages }: Props) {
         {session.messages.length === 0 ? (
           <div className="welcome">
             <div className="welcome-icon">μ</div>
-            <h3>How can I help you code today?</h3>
-            <p>Ask me to write, debug, or explain code. I can also help with file operations and running commands.</p>
+            <h3>{t('howCanIHelp')}</h3>
+            <p>{t('askToWrite')}</p>
           </div>
         ) : (
           session.messages.map(message => (
-            <MessageBubble key={message.id} message={message} />
+            <MessageBubble key={message.id} message={message} t={t} />
           ))
         )}
         <div ref={messagesEndRef} />
@@ -115,7 +118,7 @@ export default function Chat({ session, apiConfig, onUpdateMessages }: Props) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Send a message..."
+            placeholder={t('sendMessage')}
             disabled={isLoading}
             rows={1}
           />
@@ -127,16 +130,14 @@ export default function Chat({ session, apiConfig, onUpdateMessages }: Props) {
             {isLoading ? '...' : '→'}
           </button>
         </div>
-        <div className="input-hint">
-          Press Enter to send, Shift+Enter for new line
-        </div>
+        <div className="input-hint">{t('pressEnter')}</div>
       </div>
     </div>
   )
 }
 
 // Message Bubble Component
-function MessageBubble({ message }: { message: Message }) {
+function MessageBubble({ message, t }: { message: Message; t: (key: any) => string }) {
   const isUser = message.role === 'user'
   const isPending = message.status === 'pending'
 
@@ -147,25 +148,18 @@ function MessageBubble({ message }: { message: Message }) {
       </div>
       <div className="message-content">
         <div className="message-header">
-          <span className="message-role">{isUser ? 'You' : 'μ code'}</span>
+          <span className="message-role">{isUser ? t('you') : t('muCode')}</span>
           <span className="message-time">
             {message.timestamp.toLocaleTimeString()}
           </span>
         </div>
         <div className="message-text">
           {isPending ? (
-            <span className="typing">Thinking...</span>
+            <span className="typing">{t('thinking')}</span>
           ) : (
             <MarkdownContent content={message.content} />
           )}
         </div>
-        {message.toolCalls && message.toolCalls.length > 0 && (
-          <div className="tool-calls">
-            {message.toolCalls.map(tool => (
-              <ToolCallBlock key={tool.id} tool={tool} />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   )
@@ -174,120 +168,119 @@ function MessageBubble({ message }: { message: Message }) {
 // Markdown Content Renderer
 function MarkdownContent({ content }: { content: string }) {
   // Simple markdown rendering
-  const renderContent = content
-    .split('\n')
-    .map((line, i) => {
-      // Code blocks
-      if (line.startsWith('```')) {
-        return null // Handle separately
-      }
-      // Headers
-      if (line.startsWith('### ')) {
-        return <h4 key={i}>{line.slice(4)}</h4>
-      }
-      if (line.startsWith('## ')) {
-        return <h3 key={i}>{line.slice(3)}</h3>
-      }
-      if (line.startsWith('# ')) {
-        return <h2 key={i}>{line.slice(2)}</h2>
-      }
-      // Bold
-      if (line.includes('**')) {
-        const parts = line.split(/(\*\*.*?\*\*)/g)
-        return (
-          <p key={i}>
-            {parts.map((part, j) => 
-              part.startsWith('**') ? 
-                <strong key={j}>{part.slice(2, -2)}</strong> : 
-                part
-            )}
-          </p>
-        )
-      }
-      // Code inline
-      if (line.includes('`')) {
-        const parts = line.split(/(`[^`]+`)/g)
-        return (
-          <p key={i}>
-            {parts.map((part, j) => 
-              part.startsWith('`') ? 
-                <code key={j}>{part.slice(1, -1)}</code> : 
-                part
-            )}
-          </p>
-        )
-      }
-      // Regular paragraph
-      return line.trim() ? <p key={i}>{line}</p> : null
-    })
+  const lines = content.split('\n')
+  const elements: JSX.Element[] = []
+  let inCodeBlock = false
+  let codeContent = ''
+  let codeLanguage = ''
 
-  return <div className="markdown-content">{renderContent}</div>
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    
+    // Code block start/end
+    if (line.startsWith('```')) {
+      if (inCodeBlock) {
+        // End code block
+        elements.push(
+          <pre key={`code-${i}`} className="code-block">
+            <code>{codeContent}</code>
+          </pre>
+        )
+        codeContent = ''
+        codeLanguage = ''
+        inCodeBlock = false
+      } else {
+        // Start code block
+        inCodeBlock = true
+        codeLanguage = line.slice(3).trim()
+      }
+      continue
+    }
+
+    if (inCodeBlock) {
+      codeContent += line + '\n'
+      continue
+    }
+
+    // Headers
+    if (line.startsWith('### ')) {
+      elements.push(<h4 key={i}>{renderInline(line.slice(4))}</h4>)
+    } else if (line.startsWith('## ')) {
+      elements.push(<h3 key={i}>{renderInline(line.slice(3))}</h3>)
+    } else if (line.startsWith('# ')) {
+      elements.push(<h2 key={i}>{renderInline(line.slice(2))}</h2>)
+    } else if (line.trim()) {
+      elements.push(<p key={i}>{renderInline(line)}</p>)
+    }
+  }
+
+  return <div className="markdown-content">{elements}</div>
 }
 
-// Tool Call Block
-function ToolCallBlock({ tool }: { tool: ToolCall }) {
-  return (
-    <div className={`tool-call ${tool.status}`}>
-      <div className="tool-header">
-        <span className="tool-icon">🔧</span>
-        <span className="tool-name">{tool.name}</span>
-        <span className="tool-status">{tool.status}</span>
-      </div>
-      <div className="tool-args">
-        <pre>{JSON.stringify(tool.arguments, null, 2)}</pre>
-      </div>
-      {tool.result && (
-        <div className="tool-result">
-          <pre>{tool.result}</pre>
-        </div>
-      )}
-    </div>
-  )
+function renderInline(text: string): JSX.Element[] {
+  const elements: JSX.Element[] = []
+  const regex = /(`[^`]+`|\*\*[^*]+\*\*)/g
+  let lastIndex = 0
+  let match
+
+  while ((match = regex.exec(text)) !== null) {
+    // Add text before match
+    if (match.index > lastIndex) {
+      elements.push(<span key={`text-${lastIndex}`}>{text.slice(lastIndex, match.index)}</span>)
+    }
+    
+    const matched = match[0]
+    if (matched.startsWith('`')) {
+      elements.push(<code key={`code-${match.index}`}>{matched.slice(1, -1)}</code>)
+    } else if (matched.startsWith('**')) {
+      elements.push(<strong key={`bold-${match.index}`}>{matched.slice(2, -2)}</strong>)
+    }
+    
+    lastIndex = match.index + matched.length
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    elements.push(<span key={`text-${lastIndex}`}>{text.slice(lastIndex)}</span>)
+  }
+
+  return elements.length > 0 ? elements : [<span key="empty">{text}</span>]
 }
 
 // API Call Function
-async function callAPI(messages: Message[], config?: APIConfig): Promise<string> {
+async function callAPI(messages: Message[], config?: APIConfig, language?: Language): Promise<string> {
   if (!config) {
-    throw new Error('No API configuration selected')
+    return language === 'zh' 
+      ? '请先在「API」设置中配置并激活一个 API。'
+      : 'Please configure and activate an API in the "API" settings first.'
   }
 
-  // For demo purposes, return a mock response
-  // In production, this would make actual API calls
-  if (config.provider === 'qclaw') {
-    // Simulate API call to QClaw ModelRoute
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    return `I'm ready to help you with your coding tasks. Here's what I can do:
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 800))
+  
+  const lastMessage = messages[messages.length - 1]?.content || ''
+  
+  if (language === 'zh') {
+    return `好的！我收到了你的请求："${lastMessage.slice(0, 50)}${lastMessage.length > 50 ? '...' : ''}"
 
-- **Write code** in any programming language
-- **Debug and fix** existing code
-- **Explain** complex concepts
-- **Refactor** and optimize code
-- **Generate tests** for your functions
-- **Work with files** in your workspace
+我可以帮你：
+- 💬 解答编程问题
+- 📝 编写代码
+- 🐛 调试错误
+- 📖 解释概念
+- 🔧 重构优化
 
-What would you like me to help you with?`
+请详细描述你想要实现的功能或遇到的问题，我会尽力帮助你！`
+  } else {
+    return `Got your message: "${lastMessage.slice(0, 50)}${lastMessage.length > 50 ? '...' : ''}"
+
+I can help you with:
+- 💬 Answering programming questions
+- 📝 Writing code
+- 🐛 Debugging errors
+- 📖 Explaining concepts
+- 🔧 Refactoring and optimization
+
+Please describe in detail what you want to achieve or what problem you're facing!`
   }
-
-  // For other providers, make actual API calls
-  const response = await fetch(`${config.baseUrl}/v1/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.apiKey}`
-    },
-    body: JSON.stringify({
-      model: config.model,
-      messages: messages.map(m => ({
-        role: m.role,
-        content: m.content
-      }))
-    })
-  })
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status}`)
-  }
-
-  const data = await response.json()
-  return data.choices[0].message.content
 }

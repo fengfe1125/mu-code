@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Session, APIConfig, FileNode, Settings } from './types'
+import { translations, Language } from './i18n'
 import Sidebar from './components/Sidebar'
 import Chat from './components/Chat'
 import FileExplorer from './components/FileExplorer'
@@ -39,6 +40,7 @@ function App() {
   const [settings, setSettings] = useState<Settings>(defaultSettings)
   const [activeView, setActiveView] = useState<'chat' | 'files' | 'settings' | 'api'>('chat')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [language, setLanguage] = useState<Language>('zh')
 
   // Load saved state
   useEffect(() => {
@@ -49,6 +51,7 @@ function App() {
         if (state.apiConfigs) setApiConfigs(state.apiConfigs)
         if (state.settings) setSettings({ ...defaultSettings, ...state.settings })
         if (state.activeApiConfigId) setActiveApiConfigId(state.activeApiConfigId)
+        if (state.language) setLanguage(state.language)
       } catch (e) {
         console.error('Failed to load saved state:', e)
       }
@@ -60,16 +63,22 @@ function App() {
     const state = {
       apiConfigs,
       settings,
-      activeApiConfigId
+      activeApiConfigId,
+      language
     }
     localStorage.setItem('mu-code-state', JSON.stringify(state))
-  }, [apiConfigs, settings, activeApiConfigId])
+  }, [apiConfigs, settings, activeApiConfigId, language])
+
+  // Translation helper
+  const t = (key: keyof typeof translations.en): string => {
+    return translations[language][key] || translations.en[key] || key
+  }
 
   // Create new session
   const createSession = () => {
     const newSession: Session = {
       id: Date.now().toString(),
-      name: `Chat ${sessions.length + 1}`,
+      name: `${t('chat')} ${sessions.length + 1}`,
       messages: [],
       createdAt: new Date(),
       updatedAt: new Date()
@@ -113,6 +122,7 @@ function App() {
         onSetActiveView={setActiveView}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        t={t}
       />
       
       <main className="main-content">
@@ -122,14 +132,16 @@ function App() {
               session={activeSession}
               apiConfig={activeApiConfig}
               onUpdateMessages={(messages) => updateSessionMessages(activeSession.id, messages)}
+              t={t}
+              language={language}
             />
           ) : (
             <div className="empty-state">
               <div className="empty-icon">μ</div>
-              <h2>μ code</h2>
-              <p>AI-powered coding assistant</p>
+              <h2>{t('emptyChatTitle')}</h2>
+              <p>{t('emptyChatSubtitle')}</p>
               <button className="btn-primary" onClick={createSession}>
-                Start a new chat
+                {t('startNewChat')}
               </button>
             </div>
           )
@@ -139,6 +151,7 @@ function App() {
           <FileExplorer
             files={files}
             onFilesChange={setFiles}
+            t={t}
           />
         )}
         
@@ -146,6 +159,9 @@ function App() {
           <SettingsPanel
             settings={settings}
             onSettingsChange={setSettings}
+            t={t}
+            language={language}
+            onLanguageChange={setLanguage}
           />
         )}
         
@@ -155,6 +171,7 @@ function App() {
             activeConfigId={activeApiConfigId}
             onConfigsChange={setApiConfigs}
             onActiveChange={setActiveApiConfigId}
+            t={t}
           />
         )}
       </main>

@@ -1,5 +1,8 @@
 import { Session } from '../types'
+import { Language } from '../i18n'
 import './Sidebar.css'
+
+type TranslationKey = keyof import('../i18n').typeof import('../i18n').translations.en
 
 interface Props {
   sessions: Session[]
@@ -11,6 +14,7 @@ interface Props {
   onSetActiveView: (view: 'chat' | 'files' | 'settings' | 'api') => void
   collapsed: boolean
   onToggleCollapse: () => void
+  t: (key: TranslationKey) => string
 }
 
 export default function Sidebar({
@@ -22,13 +26,14 @@ export default function Sidebar({
   activeView,
   onSetActiveView,
   collapsed,
-  onToggleCollapse
+  onToggleCollapse,
+  t
 }: Props) {
   const navItems = [
-    { id: 'chat' as const, icon: '💬', label: 'Chat' },
-    { id: 'files' as const, icon: '📁', label: 'Files' },
-    { id: 'settings' as const, icon: '⚙️', label: 'Settings' },
-    { id: 'api' as const, icon: '🔑', label: 'API' }
+    { id: 'chat' as const, icon: '💬', label: t('chat') },
+    { id: 'files' as const, icon: '📁', label: t('files') },
+    { id: 'settings' as const, icon: '⚙️', label: t('settings') },
+    { id: 'api' as const, icon: '🔑', label: t('api') }
   ]
 
   return (
@@ -60,14 +65,14 @@ export default function Sidebar({
       {activeView === 'chat' && !collapsed && (
         <div className="sessions-section">
           <div className="section-header">
-            <span>Sessions</span>
-            <button className="new-session-btn" onClick={onCreateSession} title="New chat">
+            <span>{t('sessions')}</span>
+            <button className="new-session-btn" onClick={onCreateSession} title={t('newChat')}>
               +
             </button>
           </div>
           <div className="sessions-list">
             {sessions.length === 0 ? (
-              <div className="no-sessions">No sessions yet</div>
+              <div className="no-sessions">{t('noSessions')}</div>
             ) : (
               sessions.map(session => (
                 <div
@@ -82,7 +87,7 @@ export default function Sidebar({
                       e.stopPropagation()
                       onDeleteSession(session.id)
                     }}
-                    title="Delete"
+                    title={t('delete')}
                   >
                     ×
                   </button>
@@ -95,7 +100,7 @@ export default function Sidebar({
       
       <div className="sidebar-footer">
         {!collapsed && (
-          <div className="version">v1.0.0</div>
+          <div className="version">{t('version')}</div>
         )}
       </div>
     </aside>

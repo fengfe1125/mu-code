@@ -5,9 +5,10 @@ import './FileExplorer.css'
 interface Props {
   files: FileNode[]
   onFilesChange: (files: FileNode[]) => void
+  t: (key: any) => string
 }
 
-export default function FileExplorer({ files, onFilesChange }: Props) {
+export default function FileExplorer({ files, onFilesChange, t }: Props) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
 
@@ -22,7 +23,7 @@ export default function FileExplorer({ files, onFilesChange }: Props) {
   }
 
   const createFile = () => {
-    const name = prompt('Enter file name:')
+    const name = prompt(t('newFile'))
     if (!name) return
 
     const newFile: FileNode = {
@@ -36,7 +37,7 @@ export default function FileExplorer({ files, onFilesChange }: Props) {
   }
 
   const createFolder = () => {
-    const name = prompt('Enter folder name:')
+    const name = prompt(t('newFolder'))
     if (!name) return
 
     const newFolder: FileNode = {
@@ -51,12 +52,12 @@ export default function FileExplorer({ files, onFilesChange }: Props) {
   return (
     <div className="file-explorer panel">
       <div className="panel-header">
-        <h2 className="panel-title">File Explorer</h2>
+        <h2 className="panel-title">{t('fileExplorer')}</h2>
         <div className="file-actions">
-          <button className="file-action-btn" onClick={createFile} title="New file">
+          <button className="file-action-btn" onClick={createFile} title={t('newFile')}>
             📄
           </button>
-          <button className="file-action-btn" onClick={createFolder} title="New folder">
+          <button className="file-action-btn" onClick={createFolder} title={t('newFolder')}>
             📁
           </button>
         </div>
@@ -66,8 +67,8 @@ export default function FileExplorer({ files, onFilesChange }: Props) {
         {files.length === 0 ? (
           <div className="empty-files">
             <div className="empty-icon">📂</div>
-            <p>No files in workspace</p>
-            <p className="hint">Click the buttons above to create files or folders</p>
+            <p>{t('noFiles')}</p>
+            <p className="hint">{t('clickToCreate')}</p>
           </div>
         ) : (
           files.map(file => (
@@ -90,6 +91,7 @@ export default function FileExplorer({ files, onFilesChange }: Props) {
           selectedPath={selectedFile}
           onFilesChange={onFilesChange}
           onClose={() => setSelectedFile(null)}
+          t={t}
         />
       )}
     </div>
@@ -155,12 +157,14 @@ function FileEditor({
   files,
   selectedPath,
   onFilesChange,
-  onClose
+  onClose,
+  t
 }: {
   files: FileNode[]
   selectedPath: string
   onFilesChange: (files: FileNode[]) => void
   onClose: () => void
+  t: (key: any) => string
 }) {
   const file = findFile(files, selectedPath)
   const [content, setContent] = useState(file?.content || '')
@@ -188,8 +192,8 @@ function FileEditor({
       <div className="editor-header">
         <span className="editor-filename">{file.name}</span>
         <div className="editor-actions">
-          <button className="editor-btn save" onClick={handleSave}>Save</button>
-          <button className="editor-btn close" onClick={onClose}>Close</button>
+          <button className="editor-btn save" onClick={handleSave}>{t('save')}</button>
+          <button className="editor-btn close" onClick={onClose}>{t('close')}</button>
         </div>
       </div>
       <textarea
@@ -217,25 +221,11 @@ function findFile(nodes: FileNode[], path: string): FileNode | null {
 function getFileIcon(name: string): string {
   const ext = name.split('.').pop()?.toLowerCase()
   const icons: Record<string, string> = {
-    ts: '🔷',
-    tsx: '⚛️',
-    js: '🟨',
-    jsx: '⚛️',
-    py: '🐍',
-    rs: '🦀',
-    go: '🐹',
-    java: '☕',
-    cpp: '⚡',
-    c: '⚡',
-    css: '🎨',
-    html: '🌐',
-    json: '📋',
-    md: '📝',
-    txt: '📄',
-    yml: '⚙️',
-    yaml: '⚙️',
-    sh: '🐚',
-    sql: '🗃️'
+    ts: '🔷', tsx: '⚛️', js: '🟨', jsx: '⚛️',
+    py: '🐍', rs: '🦀', go: '🐹', java: '☕',
+    cpp: '⚡', c: '⚡', css: '🎨', html: '🌐',
+    json: '📋', md: '📝', txt: '📄', yml: '⚙️',
+    yaml: '⚙️', sh: '🐚', sql: '🗃️'
   }
   return icons[ext || ''] || '📄'
 }
@@ -243,24 +233,11 @@ function getFileIcon(name: string): string {
 function getLanguage(name: string): string {
   const ext = name.split('.').pop()?.toLowerCase()
   const langs: Record<string, string> = {
-    ts: 'typescript',
-    tsx: 'typescript',
-    js: 'javascript',
-    jsx: 'javascript',
-    py: 'python',
-    rs: 'rust',
-    go: 'go',
-    java: 'java',
-    cpp: 'cpp',
-    c: 'c',
-    css: 'css',
-    html: 'html',
-    json: 'json',
-    md: 'markdown',
-    yml: 'yaml',
-    yaml: 'yaml',
-    sh: 'bash',
-    sql: 'sql'
+    ts: 'typescript', tsx: 'typescript', js: 'javascript', jsx: 'javascript',
+    py: 'python', rs: 'rust', go: 'go', java: 'java',
+    cpp: 'cpp', c: 'c', css: 'css', html: 'html',
+    json: 'json', md: 'markdown', yml: 'yaml', yaml: 'yaml',
+    sh: 'bash', sql: 'sql'
   }
   return langs[ext || ''] || 'plaintext'
 }

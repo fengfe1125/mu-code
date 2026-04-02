@@ -7,6 +7,7 @@ interface Props {
   activeConfigId: string | null
   onConfigsChange: (configs: APIConfig[]) => void
   onActiveChange: (id: string) => void
+  t: (key: any) => string
 }
 
 const PROVIDER_OPTIONS = [
@@ -23,14 +24,14 @@ const MODEL_PRESETS: Record<string, string[]> = {
   custom: []
 }
 
-export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChange, onActiveChange }: Props) {
+export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChange, onActiveChange, t }: Props) {
   const [editingConfig, setEditingConfig] = useState<APIConfig | null>(null)
   const [showForm, setShowForm] = useState(false)
 
   const createNewConfig = () => {
     const newConfig: APIConfig = {
       id: Date.now().toString(),
-      name: 'New API Config',
+      name: t('newConfig'),
       provider: 'custom',
       apiKey: '',
       baseUrl: '',
@@ -60,7 +61,7 @@ export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChang
   }
 
   const deleteConfig = (id: string) => {
-    if (!confirm('Are you sure you want to delete this configuration?')) return
+    if (!confirm(t('deleteConfirm'))) return
     onConfigsChange(configs.filter(c => c.id !== id))
     if (activeConfigId === id) {
       onActiveChange(configs.find(c => c.id !== id)?.id || '')
@@ -80,13 +81,11 @@ export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChang
     
     let updated = { ...editingConfig, [field]: value }
     
-    // Auto-fill base URL when provider changes
     if (field === 'provider') {
       const provider = PROVIDER_OPTIONS.find(p => p.value === value)
       if (provider && provider.baseUrl) {
         updated.baseUrl = provider.baseUrl
       }
-      // Set default model
       const models = MODEL_PRESETS[value as string] || []
       if (models.length > 0) {
         updated.model = models[0]
@@ -96,12 +95,17 @@ export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChang
     setEditingConfig(updated)
   }
 
+  const getProviderLabel = (provider: string): string => {
+    const option = PROVIDER_OPTIONS.find(p => p.value === provider)
+    return option?.label || provider
+  }
+
   return (
     <div className="api-panel panel">
       <div className="panel-header">
-        <h2 className="panel-title">API Configuration</h2>
+        <h2 className="panel-title">{t('apiConfig')}</h2>
         <button className="add-btn" onClick={createNewConfig}>
-          + Add Config
+          + {t('addConfig')}
         </button>
       </div>
 
@@ -115,28 +119,28 @@ export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChang
               <div className="config-header">
                 <div className="config-info">
                   <span className="config-name">{config.name}</span>
-                  <span className="config-provider">{config.provider}</span>
+                  <span className="config-provider">{getProviderLabel(config.provider)}</span>
                 </div>
                 <div className="config-status">
                   {activeConfigId === config.id && (
-                    <span className="active-badge">Active</span>
+                    <span className="active-badge">{t('active')}</span>
                   )}
                 </div>
               </div>
               
               <div className="config-details">
                 <div className="detail-row">
-                  <span className="detail-label">Model:</span>
-                  <span className="detail-value">{config.model || 'Not set'}</span>
+                  <span className="detail-label">{t('model')}:</span>
+                  <span className="detail-value">{config.model || t('notSet')}</span>
                 </div>
                 <div className="detail-row">
-                  <span className="detail-label">Base URL:</span>
-                  <span className="detail-value">{config.baseUrl || 'Not set'}</span>
+                  <span className="detail-label">{t('baseUrl')}:</span>
+                  <span className="detail-value">{config.baseUrl || t('notSet')}</span>
                 </div>
                 <div className="detail-row">
-                  <span className="detail-label">API Key:</span>
+                  <span className="detail-label">{t('apiKey')}:</span>
                   <span className="detail-value">
-                    {config.apiKey ? '••••••••' + config.apiKey.slice(-4) : 'Not set'}
+                    {config.apiKey ? '••••••••' + config.apiKey.slice(-4) : t('notSet')}
                   </span>
                 </div>
               </div>
@@ -147,20 +151,20 @@ export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChang
                     className="action-btn activate"
                     onClick={() => activateConfig(config.id)}
                   >
-                    Activate
+                    {t('activate')}
                   </button>
                 )}
                 <button 
                   className="action-btn edit"
                   onClick={() => editConfig(config)}
                 >
-                  Edit
+                  {t('edit')}
                 </button>
                 <button 
                   className="action-btn delete"
                   onClick={() => deleteConfig(config.id)}
                 >
-                  Delete
+                  {t('delete')}
                 </button>
               </div>
             </div>
@@ -171,13 +175,13 @@ export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChang
           <div className="config-form-overlay">
             <div className="config-form">
               <div className="form-header">
-                <h3>{configs.find(c => c.id === editingConfig.id) ? 'Edit Configuration' : 'New Configuration'}</h3>
+                <h3>{configs.find(c => c.id === editingConfig.id) ? t('editConfig') : t('newConfig')}</h3>
                 <button className="close-btn" onClick={() => setShowForm(false)}>×</button>
               </div>
 
               <div className="form-body">
                 <div className="form-group">
-                  <label>Name</label>
+                  <label>{t('name')}</label>
                   <input
                     type="text"
                     value={editingConfig.name}
@@ -187,7 +191,7 @@ export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChang
                 </div>
 
                 <div className="form-group">
-                  <label>Provider</label>
+                  <label>{t('provider')}</label>
                   <select
                     value={editingConfig.provider}
                     onChange={(e) => updateEditingField('provider', e.target.value as APIConfig['provider'])}
@@ -199,7 +203,7 @@ export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChang
                 </div>
 
                 <div className="form-group">
-                  <label>API Key</label>
+                  <label>{t('apiKey')}</label>
                   <input
                     type="password"
                     value={editingConfig.apiKey}
@@ -209,7 +213,7 @@ export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChang
                 </div>
 
                 <div className="form-group">
-                  <label>Base URL</label>
+                  <label>{t('baseUrl')}</label>
                   <input
                     type="text"
                     value={editingConfig.baseUrl}
@@ -219,7 +223,7 @@ export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChang
                 </div>
 
                 <div className="form-group">
-                  <label>Model</label>
+                  <label>{t('model')}</label>
                   {MODEL_PRESETS[editingConfig.provider]?.length > 0 ? (
                     <select
                       value={editingConfig.model}
@@ -228,7 +232,6 @@ export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChang
                       {MODEL_PRESETS[editingConfig.provider].map(model => (
                         <option key={model} value={model}>{model}</option>
                       ))}
-                      <option value="_custom">Custom...</option>
                     </select>
                   ) : (
                     <input
@@ -242,8 +245,8 @@ export default function ApiConfigPanel({ configs, activeConfigId, onConfigsChang
               </div>
 
               <div className="form-footer">
-                <button className="cancel-btn" onClick={() => setShowForm(false)}>Cancel</button>
-                <button className="save-btn" onClick={saveConfig}>Save Configuration</button>
+                <button className="cancel-btn" onClick={() => setShowForm(false)}>{t('cancel')}</button>
+                <button className="save-btn" onClick={saveConfig}>{t('saveConfig')}</button>
               </div>
             </div>
           </div>
